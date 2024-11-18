@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: publisher
+  kafka:
+    producer:
+      bootstrap-servers: localhost:9092
+      topic: test-topic1
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      acks: all
+      retries: 50
+      properties:
+        retry.backoff.ms: 250
+        schema.registry.url: http://localhost:8081
+      ssl:
+        enabled: false
+
+logging:
+  level:
+    org.springframework.web: INFO
+
+server:
+  port: 9980
+  address: localhost
