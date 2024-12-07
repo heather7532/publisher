@@ -1,0 +1,8 @@
+# libs.versions.toml
+
+[versions]
+avro = "1.11.0"
+
+[libraries]
+avro = {module = "org.apache.avro:avro", version.ref = "avro"}
+avro-tools = {module = "org.apache.avro:avro-tools", version.ref = "avro"}

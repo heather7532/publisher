@@ -1,7 +1,7 @@
 {
   "type": "record",
   "name": "Message",
-  "namespace": "org.alpenlogic.tools.examples.publisher.avro",
+  "namespace": "org.alpenlogic.tools.examples",
   "fields": [
     {
       "name": "id",

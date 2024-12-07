@@ -1,7 +1,11 @@
+import org.apache.avro.Schema
+import org.apache.avro.compiler.specific.SpecificCompiler
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.3.5'
     id 'io.spring.dependency-management' version '1.1.6'
+    id "com.github.davidmc24.gradle.plugin.avro" version '1.9.1'
 }
 
 group = 'org.alpenlogic.tools.examples'
@@ -27,22 +31,87 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.springframework:spring-core'
+    implementation ('org.springframework.boot:spring-boot-starter') {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-web' // Spring Boot Web dependency
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
+    implementation 'org.slf4j:slf4j-api:2.0.9'
+    implementation 'org.apache.logging.log4j:log4j-jcl'
+
     implementation 'org.apache.kafka:kafka-streams'
     implementation 'org.springframework.kafka:spring-kafka'
-    implementation 'org.apache.kafka:kafka-clients:3.5.1' // Ensure the Kafka clients dependency is present
-    implementation 'io.confluent:kafka-avro-serializer:7.7.1' // Confluent Avro serializer
+    implementation 'org.apache.kafka:kafka-clients:3.7.1'
+    implementation 'io.confluent:kafka-avro-serializer:7.7.1'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.13.0'
+    implementation 'org.apache.avro:avro:1.12.0'
+    implementation 'org.apache.avro:avro-tools:1.12.0'
+
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+configurations.all {
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl'
+    exclude group: 'ch.qos.logback', module: 'logback-classic'
+    exclude group: 'ch.qos.logback', module: 'logback-core'
+    exclude group: 'commons-logging', module: 'commons-logging'
+    exclude group: 'org.slf4j', module: 'slf4j-reload4j'
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+    exclude group: 'org.apache.logging.slf4j', module: 'slf4j-log4j12'
+    exclude group: 'org.apache.logging.slf4j', module: 'slf4j-log4j12'
+    exclude group: 'org.slf4j', module: 'slf4j-simple'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+def avroSchemasDir = "src/main/resources/avro"
+def avroCodeGenerationDir = "src/main/java/generated-avro"
+
+sourceSets.main.java.srcDirs += [avroCodeGenerationDir]
+
+tasks.register('generateAvro', JavaExec) {
+    mainClass = 'org.apache.avro.tool.Main'
+    classpath = configurations.compileClasspath
+    args = ['compile', 'schema', avroSchemasDir, avroCodeGenerationDir]
+}
+
+tasks.named("compileJava").configure {
+    source(generateAvro)
+}
+
+tasks.register('customAvroCodeGeneration') {
+    doFirst {
+        // make sure that directory exists
+        file(new File(projectDir, avroCodeGenerationDir)).mkdirs()
+    }
+    clean.doLast {
+        // clean-up directory when necessary
+        file(new File(projectDir, avroCodeGenerationDir)).deleteDir()
+    }
+
+    inputs.dir(avroSchemasDir)
+    logging.captureStandardOutput(LogLevel.INFO)
+    logging.captureStandardError(LogLevel.INFO)
+    doLast {
+        file(avroSchemasDir).eachFile { file ->
+            if (file.name.endsWith('.avsc')) {
+                def schema = new Schema.Parser().parse(file)
+                def compiler = new SpecificCompiler(schema)
+                compiler.compileToDestination(file, new File(projectDir, avroCodeGenerationDir))
+            }
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    dependsOn('customAvroCodeGeneration')
 }

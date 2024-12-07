@@ -10,7 +10,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
-public class Message {
+public class MessageWrapper {
     private UUID id;
     private String contentType;
     private String content;
@@ -18,8 +18,8 @@ public class Message {
 
     private final ObjectMapper objectMapper;
 
-    public Message(UUID id, String contentType, String content,
-                   long timeSent, ObjectMapper objectMapper) {
+    public MessageWrapper(UUID id, String contentType, String content,
+                          long timeSent, ObjectMapper objectMapper) {
         this.id = id;
         this.contentType = contentType;
         this.content = content;
