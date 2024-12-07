@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "spring.kafka")
 @Getter
 @Setter
-public class KafkaProperties {
+public class LocalKafkaProperties {
     private String topic;
     private String schemaRegistryUrl;
     private Producer producer;
